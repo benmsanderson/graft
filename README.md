@@ -1,8 +1,9 @@
 # graft
 
-Gridded land-use forcing for all seven CMIP7 ScenarioMIP marker scenarios,
-built from the public regional IAM data, in the format of the Land-Use
-Harmonization dataset (LUH3), 2020-2500.
+Rapid land-use scenario inputs for Earth system models from regionally
+aggregated public IAM data: gridded land-use forcing in the format of the
+Land-Use Harmonization dataset (LUH3), 2020-2500, produced here for the seven
+CMIP7 ScenarioMIP marker scenarios.
 
 graft is the Python half of the workflow: input preparation, post-processing
 (annual output, secondary-land age and biomass, the extensions to 2500),
@@ -12,9 +13,9 @@ by a fork of PIK's [mrdownscale](https://github.com/pik-piam/mrdownscale)
 branch `graft/primary-forest-harvest`), whose `release/` folder holds the
 single entry point that builds everything.
 
-> **Not LUH3, and not an official CMIP7 forcing.** A documented backup for the
-> markers LUH3 does not (yet) cover, built with the same method for all seven
-> and evaluated against LUH3 where LUH3 exists.
+The product is independent of LUH3 and not part of the official CMIP7 forcing
+datasets. It uses the same method for every scenario and is evaluated against
+LUH3 where LUH3 scenarios exist.
 
 ## The dataset (v0.1)
 

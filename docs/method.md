@@ -62,4 +62,4 @@ listed in the fork's `README.md`.
 `package_release.py` splits each marker at 2100, as LUH publishes, adds
 `secma`/`secmb` to the states files, time and coordinate bounds, and global
 attributes stating the inputs, their licence and attribution, and that the
-product is not LUH3.
+product is independent of LUH3.

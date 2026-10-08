@@ -15,7 +15,7 @@ before the age tracker starts, are LUH3 history's own, as are the states those
 years carry. Files follow LUH3's conventions: a 365-day calendar with
 ``time_bnds``, latitude and longitude bounds, float32 fields chunked one year
 at a time, and global attributes that say what the product is - and that it
-is not LUH3. A README and SHA-256 checksums go with each dataset.
+is independent of LUH3. A README and SHA-256 checksums go with each dataset.
 
     python scripts/package_release.py ~/madrat/output/vlr01_iamc vl OUT --manifest WORK/manifest.txt
 """
@@ -38,8 +38,9 @@ MARKERS = {"vl": ("Very Low", "REMIND-MAgPIE 3.5-4.11"), "l": ("Low", "MESSAGEix
            "ml": ("Medium-to-Low", "COFFEE 1.6"), "h": ("High", "GCAM 8s"), "hl": ("High-to-Low", "WITCH 6.0")}
 FILL = np.float32(1e20)
 DAYS = 365
-NOT_LUH3 = ("Not LUH3, and not an official CMIP7 forcing: a documented backup built from the public "
-            "IIASA ScenarioMIP release with a fork of mrdownscale and graft. See references.")
+NOT_LUH3 = ("Independent of LUH3 and not part of the official CMIP7 forcing datasets: land-use inputs produced "
+            "rapidly from regionally aggregated public IAM data (the IIASA ScenarioMIP release) with a fork of "
+            "mrdownscale and graft. See references.")
 
 
 def years_of(ds: xr.Dataset) -> np.ndarray:
@@ -183,7 +184,7 @@ def main() -> None:
             attrs = {
                 "title": f"Land-use states, transitions and management for the ScenarioMIP {scenario} marker "
                          f"({model}){', extension' if ext_part else ''}, LUH format, from public IAM data",
-                "source": f"graft/mrdownscale backup land-use forcing, version {args.version.replace('-', '.')}",
+                "source": f"graft/mrdownscale land-use forcing from regional IAM data, version {args.version.replace('-', '.')}",
                 "source_id": source_id, "source_version": args.version.replace("-", "."),
                 "comment": NOT_LUH3, "institution_id": "CICERO",
                 "institution": "CICERO Center for International Climate Research, Oslo, Norway",

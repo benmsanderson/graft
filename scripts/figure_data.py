@@ -108,6 +108,8 @@ def main() -> None:
     ap.add_argument("--release", required=True, help="folder holding the packaged release datasets")
     ap.add_argument("--version", default="0-1")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--maps-only", action="store_true",
+                    help="redo maps.nc and skill.csv only, keeping the series tables")
     args = ap.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -137,15 +139,16 @@ def main() -> None:
                      lambda y: y > 2100) for k in ("states", "transitions")]
 
     states, harvest = [], []
-    for source, m, kind, path, keep in sources:
+    for source, m, kind, path, keep in ([] if args.maps_only else sources):
         print(f"{source} {m} {kind}: {Path(path).name}", flush=True)
         rows = reduce_states(path, keep, weights) if kind == "states" else reduce_harvest(path, keep, cell)
         for r in rows:
             r.update(source=source, marker=m)
         (states if kind == "states" else harvest).extend(rows)
     cols = ["source", "marker", "year"]
-    pd.DataFrame(states)[cols + ["variable", "region", "Mha"]].to_csv(out / "states.csv", index=False, float_format="%.4f")
-    pd.DataFrame(harvest)[cols + ["pool", "PgC", "Mha"]].to_csv(out / "harvest.csv", index=False, float_format="%.5f")
+    if not args.maps_only:
+        pd.DataFrame(states)[cols + ["variable", "region", "Mha"]].to_csv(out / "states.csv", index=False, float_format="%.4f")
+        pd.DataFrame(harvest)[cols + ["pool", "PgC", "Mha"]].to_csv(out / "harvest.csv", index=False, float_format="%.5f")
 
     # maps and skill, VL and H
     fields, skill = {}, []
@@ -155,9 +158,12 @@ def main() -> None:
         for year in MAP_YEARS:
             o, r = state_at(ours, year), state_at(luh, year)
             for source, ds in (("mrdownscale", o), ("LUH3", r)):
+                # LUH3 stores its plantation variables as no-data: count missing as zero on
+                # land, and keep the ocean missing
+                land = np.isfinite(np.asarray(ds["primf"].values))
                 for name, vs in MAP_FIELDS.items():
-                    x = sum(np.asarray(ds[v].values, dtype="float32") for v in vs if v in ds)
-                    fields[f"{name}_{m}_{source}_{year}"] = (("lat", "lon"), x)
+                    x = sum(np.nan_to_num(np.asarray(ds[v].values, dtype="float32")) for v in vs if v in ds)
+                    fields[f"{name}_{m}_{source}_{year}"] = (("lat", "lon"), np.where(land, x, np.nan))
             t = compare.score_cells(o, r, cell * 1e4).reset_index()
             t.insert(0, "year", year)
             t.insert(0, "marker", m)
