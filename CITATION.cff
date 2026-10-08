@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use graft or the graft-landState data, please cite them as below."
+title: "graft: gridded land-use forcing for the CMIP7 ScenarioMIP markers from public IAM data"
+version: "0.1"
+license: BSD-3-Clause
+repository-code: "https://github.com/benmsanderson/graft"
+authors:
+  - family-names: Sanderson
+    given-names: Benjamin M.
+    affiliation: "CICERO Center for International Climate Research"
+references:
+  - type: software
+    title: "mrdownscale: Downscale and harmonize land use data"
+    authors:
+      - family-names: Sauer
+        given-names: Pascal
+      - family-names: Dietrich
+        given-names: Jan Philipp
+    doi: "10.5281/zenodo.11244475"

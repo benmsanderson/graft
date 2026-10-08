@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "graft"
+version = "0.1"
+description = "Gridded land-use forcing for the CMIP7 ScenarioMIP markers from public IAM data: preparation, post-processing, extensions and diagnostics"
+license = {text = "BSD-3-Clause"}
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "xarray",
+    "netCDF4",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+# iamc = ["pyam-iamc"]  # optional, for reading IAMC files with pyam
+
+[project.scripts]
+graft = "graft.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.setuptools.package-data]
+graft = ["data/*"]
