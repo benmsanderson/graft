@@ -4,9 +4,9 @@ A build (release/build.sh on the mrdownscale fork) leaves, per marker, annual
 files for 2020-2150 and the static period 2150-2500. This writes two datasets,
 split at 2100 as LUH publishes them:
 
-- ``CICERO-graft-landState-<marker>-<version>``: states 2020-2100 (with
+- ``<prefix>-<marker>-<version>``: states 2020-2100 (with
   secma and secmb), transitions 2020-2099, management 2020-2100;
-- ``CICERO-graft-landState-<marker>-ext-<version>``: states 2100-2500,
+- ``<prefix>-<marker>-ext-<version>``: states 2100-2500,
   transitions 2100-2499, management 2100-2500.
 
 The build's last ramp transition year, which only repeats 2149's rates, is
@@ -36,6 +36,11 @@ from graft import paths
 MARKERS = {"vl": ("Very Low", "REMIND-MAgPIE 3.5-4.11"), "l": ("Low", "MESSAGEix-GLOBIOM-GAINS 2.1-M-R12"),
            "ln": ("Low-to-Negative", "AIM 3.0"), "m": ("Medium", "IMAGE 3.4"),
            "ml": ("Medium-to-Low", "COFFEE 1.6"), "h": ("High", "GCAM 8s"), "hl": ("High-to-Low", "WITCH 6.0")}
+# The datasets' name and who releases them: --prefix and --institutions (set in the fork's release/config.sh)
+PREFIX = "CICERO-graft-landState"
+INSTITUTIONS = {"CICERO": "CICERO Center for International Climate Research, Oslo, Norway",
+                "PIK": "Potsdam Institute for Climate Impact Research (PIK), Member of the Leibniz Association, "
+                       "Potsdam, Germany"}
 FILL = np.float32(1e20)
 DAYS = 365
 NOT_LUH3 = ("Independent of LUH3 and not part of the official CMIP7 forcing datasets: land-use inputs produced "
@@ -140,6 +145,8 @@ def main() -> None:
     ap.add_argument("out")
     ap.add_argument("--version", default="0-1")
     ap.add_argument("--manifest", help="the build's manifest.txt, copied into the provenance")
+    ap.add_argument("--prefix", default=PREFIX, help=f"dataset name before the marker (default {PREFIX})")
+    ap.add_argument("--institutions", nargs="+", choices=list(INSTITUTIONS), default=["CICERO"])
     args = ap.parse_args()
 
     b = Path(args.build)
@@ -175,7 +182,7 @@ def main() -> None:
     built = []
     for ext_part, label, span, tspan in ((False, "", range(2020, 2101), range(2020, 2100)),
                                          (True, "-ext", range(2100, 2501), range(2100, 2500))):
-        source_id = f"CICERO-graft-landState-{args.marker}{label}-{args.version}"
+        source_id = f"{args.prefix}-{args.marker}{label}-{args.version}"
         folder = Path(args.out) / source_id
         folder.mkdir(parents=True, exist_ok=True)
         for kind, src, names, yrs in (("states", states, stateNames, list(span)),
@@ -186,8 +193,8 @@ def main() -> None:
                          f"({model}){', extension' if ext_part else ''}, LUH format, from public IAM data",
                 "source": f"graft/mrdownscale land-use forcing from regional IAM data, version {args.version.replace('-', '.')}",
                 "source_id": source_id, "source_version": args.version.replace("-", "."),
-                "comment": NOT_LUH3, "institution_id": "CICERO",
-                "institution": "CICERO Center for International Climate Research, Oslo, Norway",
+                "comment": NOT_LUH3, "institution_id": "-".join(args.institutions),
+                "institution": "; ".join(INSTITUTIONS[i] for i in args.institutions),
                 "contact": "benjamin.sanderson@cicero.oslo.no", "license_id": "CC BY 4.0",
                 "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
                 "references": "https://github.com/benmsanderson/graft; https://github.com/benmsanderson/mrdownscale "

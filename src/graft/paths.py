@@ -6,10 +6,12 @@ cluster, so set the variables elsewhere.
 
 - ``GRAFT_LUH3``: LUH3 history, the ``UofMD-landState-3-1-1`` files, which
   the products are harmonized to (states, transitions, management, static).
-- ``GRAFT_LUH3_SCENARIOS``: the folder holding the published LUH3 scenarios
-  (``UofMD-landState-vl-3-1``, ``...-h-3-1``); benchmarks only.
-- ``GRAFT_LUH3_EXT``: the folder holding LUH3's extensions
-  (``UofMD-landState-vl-ext-3-1``, ``...-h-ext-3-1``); benchmarks only.
+- ``GRAFT_LUH3_SCENARIOS``: the folder holding the LUH3 scenarios published on
+  input4MIPs (``UofMD-landState-vl-3-1-1``, ``...-h-3-1-1``, ``...-m-3-1``,
+  ``...-hl-3-1``); benchmarks only.
+- ``GRAFT_LUH3_EXT``: the folder holding LUH3's published extensions
+  (``UofMD-landState-vl-ext-3-1``, ``...-h-ext-3-1``, ``...-m-ext-3-1``);
+  benchmarks only.
 """
 from __future__ import annotations
 
