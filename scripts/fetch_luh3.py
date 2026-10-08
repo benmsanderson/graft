@@ -78,7 +78,9 @@ def main(argv=None) -> int:
                 entry["sha256"] = entry["sha256"] or doc["checksum"][0]
             for u in doc.get("url", []):
                 link = u.split("|")[0]
-                if "/fileServer/" in link and link not in entry["urls"]:
+                # THREDDS file servers, and Globus HTTPS endpoints (newer datasets may be served only there)
+                direct = "/fileServer/" in link or (link.startswith("https://") and ".data.globus.org/" in link)
+                if direct and link not in entry["urls"]:
                     entry["urls"].append(link)
 
     if not files:
