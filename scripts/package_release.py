@@ -202,8 +202,9 @@ def main() -> None:
                               "UofMD-landState-3-1-1 (Hurtt et al. 2020, https://doi.org/10.5194/gmd-13-5425-2020)",
                 "input_data": f"ScenarioMIP {scenario} marker by the {model} modelling team, from the IIASA "
                               "'ScenarioMIP/CMIP7 Ensemble - Data at the R10 region level', release v0.1 "
-                              "(September 2026), https://scenariomip.apps.ece.iiasa.ac.at; LUH3 history "
-                              "UofMD-landState-3-1-1 (CC BY 4.0)",
+                              "(September 2026, https://doi.org/10.5281/zenodo.22296051), https://scenariomip.apps.ece.iiasa.ac.at; "
+                              "LUH3 history UofMD-landState-3-1-1 (https://doi.org/10.25981/ESGF.input4MIPs.CMIP7/2521499; "
+                              "data identical to 3-1-2, https://doi.org/10.5281/zenodo.19261724; CC BY 4.0)",
                 "input_data_license": "The IIASA release is copyright IIASA and the contributing modelling teams "
                                       "and used under its licence, https://scenariomip.apps.ece.iiasa.ac.at/license; "
                                       "this dataset is derived from it and does not reproduce it",

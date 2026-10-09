@@ -55,6 +55,16 @@ def query(index: str, source_id: str) -> list[dict]:
         return []
 
 
+def serves(url: str, size: int | None) -> bool:
+    """Whether a mirror answers for the file, with the size the index lists."""
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, method="HEAD"), timeout=60) as r:
+            length = r.headers.get("Content-Length")
+            return r.status == 200 and (size is None or length is None or int(length) == int(size))
+    except Exception:
+        return False
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("dest", help="directory to download into, e.g. ~/madrat/sources/LUH3")
@@ -86,6 +96,14 @@ def main(argv=None) -> int:
     if not files:
         print(f"no files found for {args.source_id} {args.kinds}", file=sys.stderr)
         return 1
+    # a mirror the index lists may not serve the file yet (404), and aria2 mixing
+    # it with good ones can end in a short file: keep only mirrors that answer
+    # with the listed size
+    for title, entry in files.items():
+        entry["urls"] = [u for u in entry["urls"] if serves(u, entry["size"])]
+        if not entry["urls"]:
+            print(f"no mirror serves {title}", file=sys.stderr)
+            return 1
 
     dest = Path(args.dest).expanduser()
     dest.mkdir(parents=True, exist_ok=True)
