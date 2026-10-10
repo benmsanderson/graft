@@ -30,19 +30,20 @@ LUH3 where LUH3 scenarios exist.
 
 Each product is harmonized to LUH3 history at 2025, closes its land budget
 under LUH3's accounting rule to 0.0001 Mha in every year, and joins LUH3
-history without a step. Against the published LUH3 scenarios (VL and H) at
-2100:
+history without a step. Against the LUH3 scenarios published on input4MIPs
+(VL, M, H and HL) at 2100:
 
-| | VL | H |
-|---|---|---|
-| forest | -4.4 % | -4.1 % |
-| primary forest | -10.3 % | -0.7 % |
-| cropland | +0.1 % | -0.3 % |
-| pasture | +6.9 % | +2.5 % |
+| | VL | M | H | HL |
+|---|---|---|---|---|
+| forest | -4.1 % | +1.7 % | -4.1 % | +0.5 % |
+| primary forest | -10.3 % | -2.4 % | -0.7 % | -7.0 % |
+| cropland | +0.1 % | +1.0 % | -0.3 % | -4.1 % |
+| pasture | +6.9 % | +2.5 % | +2.5 % | +7.5 % |
 
-Gap relative to LUH3; grid-cell correlations 0.86-0.98. The method,
-evaluation and limitations are described in the accompanying paper
-(Sanderson et al., in preparation).
+Gap relative to LUH3; grid-cell correlations 0.86-1.00. Almost all of the
+grid-cell difference is where land use is placed within regions rather than
+how much each region has. The method, evaluation and limitations are
+described in the accompanying paper (Sanderson et al., in preparation).
 
 **Inputs and attribution.** The scenarios are those of the ScenarioMIP
 modelling teams, from the IIASA *ScenarioMIP/CMIP7 Ensemble - Data at the R10
