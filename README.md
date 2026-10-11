@@ -24,7 +24,7 @@ LUH3 where LUH3 scenarios exist.
 | markers | VL (REMIND-MAgPIE), L (MESSAGEix-GLOBIOM-GAINS), LN (AIM), M (IMAGE), ML (COFFEE), H (GCAM), HL (WITCH) |
 | period | 2020-2100 (`CICERO-graft-landState-<marker>-0-1`) and 2100-2500 (`...-<marker>-ext-0-1`) |
 | content | LUH-format states (with secondary mean age and biomass), gross transitions and wood harvest, management; annual, 0.25 degrees |
-| size | 14 datasets, 97 GB |
+| size | 14 datasets, 108 GB |
 | access | NIRD Research Data Archive, DOI to come |
 | licence | CC BY 4.0 |
 
@@ -35,15 +35,20 @@ history without a step. Against the LUH3 scenarios published on input4MIPs
 
 | | VL | M | H | HL |
 |---|---|---|---|---|
-| forest | -4.1 % | +1.7 % | -4.1 % | +0.5 % |
-| primary forest | -10.3 % | -2.4 % | -0.7 % | -7.0 % |
-| cropland | +0.1 % | +1.0 % | -0.3 % | -4.1 % |
-| pasture | +6.9 % | +2.5 % | +2.5 % | +7.5 % |
+| forest | -2.2 % | +1.7 % | -1.1 % | +3.3 % |
+| primary forest | -7.4 % | +0.1 % | +0.6 % | -3.4 % |
+| cropland | +0.4 % | +0.1 % | -0.3 % | -6.1 % |
+| pasture | +1.5 % | +0.2 % | +0.1 % | -0.4 % |
 
-Gap relative to LUH3; grid-cell correlations 0.86-1.00. Almost all of the
-grid-cell difference is where land use is placed within regions rather than
-how much each region has. The method, evaluation and limitations are
-described in the accompanying paper (Sanderson et al., in preparation).
+Gap relative to LUH3; grid-cell correlations 0.86-1.00. LUH3 is a benchmark,
+not the truth. Like LUH3, the products keep each IAM's regional changes since
+2025 on top of LUH3's 2025 levels; the remaining differences are where LUH3
+departs from the IAM (rangeland in VL, cropland in HL), wood harvest following
+each IAM's published roundwood, and the split of the IAM's forest into LUH's
+forest and non-forest land. Almost all of the grid-cell difference is where
+land use is placed within regions rather than how much each region has. The
+method, evaluation and limitations are described in the accompanying paper
+(Sanderson et al., in preparation).
 
 **Inputs and attribution.** The scenarios are those of the ScenarioMIP
 modelling teams, from the IIASA *ScenarioMIP/CMIP7 Ensemble - Data at the R10

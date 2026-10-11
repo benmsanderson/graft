@@ -23,9 +23,16 @@ listed in the fork's `README.md`.
    secondary, by LUH3's own 2024 composition.
 2. Forest and urban land are put on LUH's definitions at 2025 by a crosswalk
    that keeps each model's changes.
-3. The regional trajectories are harmonized to LUH3 history over 2025-2050;
-   primary forest declines with the primary harvest area each scenario's
-   roundwood implies.
+3. Where a model's region differs in area from LUH3's, the difference is
+   added to or taken from natural land, so managed land and its changes are
+   kept. The regional trajectories are harmonized to LUH3 history at 2025:
+   each category's change in the IAM since 2025 is added to LUH3's 2025
+   level, with any land a category would lose beyond what it has taken from
+   the other categories of its group (primary land last). Primary forest
+   and primary non-forest land decline with the primary harvest area each
+   scenario's roundwood implies and their share of any net loss, never by
+   relabelling. Fertilizer and wood harvest are faded from LUH3's
+   2025 values to the IAM's over 2025-2050.
 4. The harmonized regional states are downscaled to the 0.25 degree grid from
    LUH3's 2024 pattern; gross transitions are derived from the states; wood
    harvest comes from roundwood calibrated to LUH3's harvest history.

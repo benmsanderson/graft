@@ -239,7 +239,8 @@ def main() -> None:
                     x = sum(np.nan_to_num(np.asarray(ds[v].values, dtype="float32")) for v in vs if v in ds)
                     fields[f"{name}_{m}_{source}_{year}"] = (("lat", "lon"), np.where(land, x, np.nan))
                     encoding[f"{name}_{m}_{source}_{year}"] = fraction
-                fields[f"secma_{m}_{source}_{year}"] = (("lat", "lon"), np.asarray(ds["secma"].values, dtype="float32"))
+                fields[f"secma_{m}_{source}_{year}"] = (("lat", "lon"), np.where(land, np.asarray(ds["secma"].values,
+                                                                                         dtype="float32"), np.nan))
                 encoding[f"secma_{m}_{source}_{year}"] = {"zlib": True, "complevel": 5, "least_significant_digit": 1}
         for year in (2050, 2100):
             t = compare.score_cells(state_at(ours, year), state_at(luh, year), cell * 1e4).reset_index()

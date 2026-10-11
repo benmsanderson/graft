@@ -13,7 +13,7 @@
 # filenames and the folder, and optionally the path to the mrdownscale clone.
 
 args <- commandArgs(trailingOnly = TRUE)
-if (length(args) < 2) stop("usage: run_scenariomip.R <scenario> <tag> [gross,fold,harvest] [mrdownscale path]")
+if (length(args) < 2) stop("usage: run_scenariomip.R <scenario> <tag> [gross,fold,harvest,abs] [mrdownscale path]")
 scenario <- args[1]
 tag <- args[2]
 opts <- if (length(args) >= 3) strsplit(tolower(args[3]), ",")[[1]] else character(0)
@@ -22,6 +22,9 @@ fold <- any(opts %in% c("fold", "foldplantations"))
 # primary forest driven by the scenario's wood demand (fork branch
 # graft/primary-forest-harvest) instead of fadeForest's historical extrapolation
 harmonization <- if (any(opts %in% c("harvest", "fadeforestharvest"))) "fadeForestHarvest" else "fadeForest"
+# the IAM's changes since the harmonization start applied to LUH3's level
+# there, rather than a fade to the IAM's own levels
+if (any(opts %in% c("abs", "absolutechanges"))) harmonization <- "absoluteChangesHarvest"
 pkg <- if (length(args) >= 4) args[4] else "~/GitHub/mrdownscale"
 # last year to write; 2150 for an input extended by scripts/extend_iamc.py
 yearEnd <- as.integer(Sys.getenv("YEAR_END", "2100"))
