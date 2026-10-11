@@ -22,6 +22,9 @@ fold <- any(opts %in% c("fold", "foldplantations"))
 # primary forest driven by the scenario's wood demand (fork branch
 # graft/primary-forest-harvest) instead of fadeForest's historical extrapolation
 harmonization <- if (any(opts %in% c("harvest", "fadeforestharvest"))) "fadeForestHarvest" else "fadeForest"
+# the IAM's changes since the harmonization start applied to LUH3's level
+# there, rather than a fade to the IAM's own levels
+if (any(opts %in% c("abs", "absolutechanges"))) harmonization <- "absoluteChangesHarvest"
 pkg <- if (length(args) >= 4) args[4] else "~/GitHub/mrdownscale"
 # last year to write; 2150 for an input extended by scripts/extend_iamc.py
 yearEnd <- as.integer(Sys.getenv("YEAR_END", "2100"))
