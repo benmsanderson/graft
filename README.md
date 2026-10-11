@@ -22,7 +22,7 @@ LUH3 where LUH3 scenarios exist.
 | | |
 |---|---|
 | markers | VL (REMIND-MAgPIE), L (MESSAGEix-GLOBIOM-GAINS), LN (AIM), M (IMAGE), ML (COFFEE), H (GCAM), HL (WITCH) |
-| period | 2020-2100 (`CICERO-graft-landState-<marker>-0-1`) and 2100-2500 (`...-<marker>-ext-0-1`) |
+| period | 2020-2100 (`CICERO-PIK-mrdownscale-landState-<marker>-0-1`) and 2100-2500 (`...-<marker>-ext-0-1`) |
 | content | LUH-format states (with secondary mean age and biomass), gross transitions and wood harvest, management; annual, 0.25 degrees |
 | size | 14 datasets, 108 GB |
 | access | NIRD Research Data Archive, DOI to come |
