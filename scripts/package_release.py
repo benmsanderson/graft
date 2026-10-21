@@ -20,12 +20,9 @@ is independent of LUH3. A README and SHA-256 checksums go with each dataset.
 Wood harvest follows LUH3's pools and its meaning of harvested area: whole
 stands at the cell's secondary mean biomass (in LUH3, ``*_bioh`` is
 ``*_harv`` times ``secmb`` times cell area, for each secondary pool).
-mrdownscale's harvest carbon follows the IAM's roundwood, but its secondary
-areas carry less carbon than that, so the areas are recomputed from the
-carbon: secondary forest and plantation harvest is written as ``secmf``, its
-area the carbon over ``secmb`` (at most the cell's ``secdf``), and
-``secnf_harv`` likewise (at most ``secdn``). ``secyf`` and ``pltns`` harvest
-are written as zero. Carbon is unchanged.
+Secondary forest and plantation harvest is written as ``secmf``, with
+``secyf`` and ``pltns`` harvest zero; each R10 region's harvest area is
+scaled until it carries the region's harvest carbon at secmb (see Harvest).
 
     python scripts/package_release.py ~/madrat/output/vlr01_iamc vl OUT --manifest WORK/manifest.txt
 """
@@ -39,6 +36,7 @@ from pathlib import Path
 
 import netCDF4
 import numpy as np
+import pandas as pd
 import xarray as xr
 
 from graft import paths
@@ -107,25 +105,35 @@ class Source:
 class Harvest:
     """Transitions, with wood harvest in LUH3's pools and as whole-stand areas.
 
-    ``secmf_harv`` = (secdf_bioh + pltns_bioh) / (secmb carea), at most secdf;
-    ``secnf_harv`` = secnf_bioh / (secmb carea), at most secdn; secyf and pltns
-    harvest zero. Where the cap binds (or secmb is zero) the harvested carbon is
-    kept and its density is above secmb; ``capped`` adds up that carbon."""
+    In LUH3 a secondary pool's harvest carbon is its area times the cell's
+    ``secmb``. mrdownscale's areas and carbon do not keep to that from 2025,
+    so, per R10 region, year and pool, its harvest area is scaled by one factor
+    until area times secmb gives the region's harvest carbon, at most the
+    cell's secdf (secmf: secondary forest and plantations) or secdn (secnf),
+    and the carbon is written as area times secmb. Regional carbon, and so the
+    IAM's roundwood, is kept, and harvest stays where mrdownscale put it.
+    Where a region's harvested area carries no biomass, each cell's own carbon
+    over secmb is used. ``lost`` adds up the carbon the caps leave unplaced."""
 
     RENAME = {"secdf_harv": ["secmf_harv", "secyf_harv"], "secdf_bioh": ["secmf_bioh", "secyf_bioh"]}
-    LONG = {"secmf_harv": "wood harvest area from secondary mature forest (whole stands at secmb)",
+    LONG = {"secmf_harv": "wood harvest area from secondary mature forest, including plantations (whole stands at secmb)",
             "secyf_harv": "wood harvest area from secondary young forest (none written)",
             "secmf_bioh": "wood harvest biomass carbon from secondary mature forest, including plantations",
             "secyf_bioh": "wood harvest biomass carbon from secondary young forest (none written)",
             "secnf_harv": "wood harvest area from secondary non-forest land (whole stands at secmb)",
             "pltns_harv": "wood harvest area from plantation forest (included in secmf; none written)",
             "pltns_bioh": "wood harvest biomass carbon from plantation forest (included in secmf_bioh; none written)"}
+    POOLS = {"secmf": (("secdf", "pltns"), "secdf"), "secnf": (("secnf",), "secdn")}
     CHUNK = 25
+    ROUNDS = 20
 
-    def __init__(self, transitions: Source, states: Source, carea_m2: np.ndarray):
+    def __init__(self, transitions: Source, states: Source, carea_m2: np.ndarray, region: np.ndarray):
         self.t, self.s, self.carea = transitions, states, carea_m2
-        self.capped = {"secmf": 0.0, "secnf": 0.0}
-        self.total = {"secmf": 0.0, "secnf": 0.0}
+        self.region = (region.astype("int64") + 1).ravel()  # 0 where a cell has no region
+        self.nregion = int(self.region.max()) + 1
+        self.cache = {}
+        self.lost = {p: 0.0 for p in self.POOLS}
+        self.total = {p: 0.0 for p in self.POOLS}
 
     def names(self, names: list[str]) -> list[str]:
         return [n for v in names for n in self.RENAME.get(v, [v])]
@@ -138,34 +146,76 @@ class Harvest:
             a.update(long_name=self.LONG[v], standard_name=v)
         return a
 
-    def _area(self, pool: str, bioh: np.ndarray, years: list[int], cap_state: str) -> np.ndarray:
-        mb = self.s.block("secmb", years).astype("f8")
-        cap = np.nan_to_num(self.s.block(cap_state, years).astype("f8"))
-        bioh = np.nan_to_num(bioh.astype("f8"))
+    def _sum(self, x: np.ndarray) -> np.ndarray:
+        return np.bincount(self.region, weights=x, minlength=self.nregion)
+
+    def _year(self, pool: str, area0, carbon, mb, cap):
+        """One year's (area, carbon) for a pool, all as flat float64 arrays."""
+        A = self.carea.ravel()
+        target = self._sum(carbon)
+        whole = mb * A                                   # carbon of the whole cell at secmb, per unit area share
+        f = np.divide(target, self._sum(area0 * whole), out=np.zeros(self.nregion), where=self._sum(area0 * whole) > 0)
+        area = np.minimum(area0 * f[self.region], cap)
+        for _ in range(self.ROUNDS):                     # spread what the caps hold back over the uncapped cells
+            short = target - self._sum(area * whole)
+            free = np.where(area < cap, area * whole, 0.0)
+            room = self._sum(free)
+            g = np.divide(short, room, out=np.zeros(self.nregion), where=(room > 0) & (short > 1e-6 * target))
+            if not g.any():
+                break
+            area = np.minimum(area * (1 + g[self.region]), cap)
+        # regions whose harvested area carries no biomass: each cell's own carbon over secmb
+        none = (self._sum(area0 * whole) <= 0)[self.region] & (carbon > 0)
         with np.errstate(divide="ignore", invalid="ignore"):
-            area = bioh / (np.nan_to_num(mb) * self.carea)
-        area = np.where(np.isfinite(area), area, np.inf)
-        out = np.minimum(area, cap)
-        hit = (area > cap) & (bioh > 0)
-        # carbon above what whole stands at secmb would carry
-        self.capped[pool] += float((bioh - np.nan_to_num(out * mb * self.carea)).clip(0)[hit].sum())
-        self.total[pool] += float(bioh.sum())
-        return np.where(np.isnan(self.t.block("secnf_harv", years)), np.nan, out).astype("f4")
+            own = np.where(whole > 0, carbon / whole, cap)
+        area = np.where(none, np.minimum(own, cap), area)
+        out = area * whole
+        self.lost[pool] += float(target.sum() - out.sum())
+        self.total[pool] += float(target.sum())
+        return area, out
+
+    def _pool(self, pool: str, years: list[int]):
+        key = (pool, tuple(years))
+        if key not in self.cache:
+            self.cache = {k: v for k, v in self.cache.items() if k[1] == key[1]}
+            sources, state = self.POOLS[pool]
+            mask = np.isnan(self.t.block("secnf_harv", years))
+            area0 = sum(np.nan_to_num(self.t.block(f"{q}_harv", years).astype("f8")) for q in sources)
+            carbon = sum(np.nan_to_num(self.t.block(f"{q}_bioh", years).astype("f8")) for q in sources)
+            mb = np.nan_to_num(self.s.block("secmb", years).astype("f8"))
+            cap = np.nan_to_num(self.s.block(state, years).astype("f8"))
+            areas, carbons = [], []
+            for k in range(len(years)):
+                a, c = self._year(pool, area0[k].ravel(), carbon[k].ravel(), mb[k].ravel(), cap[k].ravel())
+                areas.append(a.reshape(mask.shape[1:]))
+                carbons.append(c.reshape(mask.shape[1:]))
+            self.cache[key] = (np.where(mask, np.nan, np.stack(areas)).astype("f4"),
+                               np.where(mask, np.nan, np.stack(carbons)).astype("f4"))
+        return self.cache[key]
 
     def block(self, v: str, years: list[int]) -> np.ndarray:
         if len(years) > self.CHUNK:
             return np.concatenate([self.block(v, years[i:i + self.CHUNK]) for i in range(0, len(years), self.CHUNK)])
         if v in ("secyf_harv", "secyf_bioh", "pltns_harv", "pltns_bioh"):
-            x = self.t.block("pltns_harv" if v.endswith("harv") else "pltns_bioh", years)
+            x = self.t.block("secnf_harv", years)
             return np.where(np.isnan(x), np.nan, 0).astype("f4")
-        if v == "secmf_bioh":
-            sec = self.t.block("secdf_bioh", years)
-            return np.where(np.isnan(sec), np.nan, sec + np.nan_to_num(self.t.block("pltns_bioh", years))).astype("f4")
-        if v == "secmf_harv":
-            return self._area("secmf", self.block("secmf_bioh", years), years, "secdf")
-        if v == "secnf_harv":
-            return self._area("secnf", self.t.block("secnf_bioh", years), years, "secdn")
+        if v[:5] in self.POOLS and v[5:] in ("_harv", "_bioh"):
+            area, carbon = self._pool(v[:5], years)
+            return area if v.endswith("_harv") else carbon
         return self.t.block(v, years)
+
+
+def region_map(model: str, lat: np.ndarray, lon: np.ndarray) -> np.ndarray:
+    """Index of the model's R10 region for every cell (-1 where none)."""
+    data = Path(__file__).parents[1] / "data"
+    regions = pd.read_csv(data / "region_mappings" / f"{model.replace(' ', '_')}_R10.csv")
+    cells = pd.read_csv(data / "country_cell.csv.gz").merge(regions, on="country")
+    names = sorted(regions.region.unique())
+    out = np.full((lat.size, lon.size), -1, dtype="int8")
+    row = {round(float(v), 3): i for i, v in enumerate(lat)}
+    col = {round(float(v), 3): i for i, v in enumerate(lon)}
+    out[[row[round(y, 3)] for y in cells.y], [col[round(x, 3)] for x in cells.x]] = [names.index(r) for r in cells.region]
+    return out
 
 
 def write(path: Path, src: Source, names: list[str], years: list[int], grid: xr.Dataset, attrs: dict):
@@ -247,7 +297,8 @@ def main() -> None:
     early.to_netcdf(early_tmp)
 
     states = Source([str(early_tmp), str(tmp), annual["states"], ext["states"], ext["secondary"]])
-    transitions = Harvest(Source([annual["transitions"], ext["transitions"]]), states, carea_m2)
+    transitions = Harvest(Source([annual["transitions"], ext["transitions"]]), states, carea_m2,
+                          region_map(MARKERS[args.marker][1], grid.lat.values, grid.lon.values))
     management = Source([annual["management"], ext["management"]])
     stateNames = list(xr.open_dataset(annual["states"], decode_times=False).data_vars) + ["secma", "secmb"]
     transitionNames = transitions.names(list(xr.open_dataset(annual["transitions"], decode_times=False).data_vars))
@@ -300,9 +351,9 @@ def main() -> None:
             print("wrote", name, flush=True)
             if kind == "transitions":
                 for pool in ("secmf", "secnf"):
-                    print(f"  {pool}: {transitions.capped[pool] / 1e12:.4f} of {transitions.total[pool] / 1e12:.2f} PgC "
-                          "harvested above secmb where the cap binds", flush=True)
-                    transitions.capped[pool] = transitions.total[pool] = 0.0
+                    print(f"  {pool}: {transitions.lost[pool] / 1e12:.4f} of {transitions.total[pool] / 1e12:.2f} PgC "
+                          "of regional harvest carbon left unplaced by the caps", flush=True)
+                    transitions.lost[pool] = transitions.total[pool] = 0.0
         with open(folder / "SHA256SUMS", "w") as f:
             for p in sorted(folder.glob("*.nc")):
                 f.write(f"{sha256(p)}  {p.name}\n")
@@ -311,8 +362,9 @@ def main() -> None:
             f"Annual, 0.25 degree, {span[0]}-{span[-1]} (transitions {tspan[0]}-{tspan[-1]}). Variables as in LUH3; "
             "plantations are folded into secondary forest; wood harvest moves primary land to secondary as in LUH3. "
             "Secondary wood harvest is written in LUH3's pools, as whole stands at the cell's secondary mean biomass "
-            "(secmb): secmf_harv is the secondary forest and plantation harvest carbon (secmf_bioh) over secmb, at most "
-            "secdf, and secnf_harv likewise, at most secdn; secyf and pltns harvest are zero.\n\n"
+            "(secmb, so that *_bioh is *_harv times secmb times cell area): secmf holds secondary forest and plantation "
+            "harvest, and secyf and pltns harvest are zero. Each R10 region's harvest area is scaled until it carries "
+            "the region's harvest carbon at secmb, at most the cell's secdf (secmf) or secdn (secnf).\n\n"
             f"Input: {attrs['input_data']}.\n{attrs['input_data_license']}.\n\n"
             f"Acknowledgement: {attrs['acknowledgement']}.\n\n"
             f"Licence: CC BY 4.0. Provenance (build manifest):\n\n{provenance}\n")
