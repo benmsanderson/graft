@@ -17,6 +17,16 @@ years carry. Files follow LUH3's conventions: a 365-day calendar with
 at a time, and global attributes that say what the product is - and that it
 is independent of LUH3. A README and SHA-256 checksums go with each dataset.
 
+Wood harvest follows LUH3's pools and its meaning of harvested area: whole
+stands at the cell's secondary mean biomass (in LUH3, ``*_bioh`` is
+``*_harv`` times ``secmb`` times cell area, for each secondary pool).
+mrdownscale's harvest carbon follows the IAM's roundwood, but its secondary
+areas carry less carbon than that, so the areas are recomputed from the
+carbon: secondary forest and plantation harvest is written as ``secmf``, its
+area the carbon over ``secmb`` (at most the cell's ``secdf``), and
+``secnf_harv`` likewise (at most ``secdn``). ``secyf`` and ``pltns`` harvest
+are written as zero. Carbon is unchanged.
+
     python scripts/package_release.py ~/madrat/output/vlr01_iamc vl OUT --manifest WORK/manifest.txt
 """
 from __future__ import annotations
@@ -94,6 +104,70 @@ class Source:
         return dict(self.where[(v, year)][0][v].attrs)
 
 
+class Harvest:
+    """Transitions, with wood harvest in LUH3's pools and as whole-stand areas.
+
+    ``secmf_harv`` = (secdf_bioh + pltns_bioh) / (secmb carea), at most secdf;
+    ``secnf_harv`` = secnf_bioh / (secmb carea), at most secdn; secyf and pltns
+    harvest zero. Where the cap binds (or secmb is zero) the harvested carbon is
+    kept and its density is above secmb; ``capped`` adds up that carbon."""
+
+    RENAME = {"secdf_harv": ["secmf_harv", "secyf_harv"], "secdf_bioh": ["secmf_bioh", "secyf_bioh"]}
+    LONG = {"secmf_harv": "wood harvest area from secondary mature forest (whole stands at secmb)",
+            "secyf_harv": "wood harvest area from secondary young forest (none written)",
+            "secmf_bioh": "wood harvest biomass carbon from secondary mature forest, including plantations",
+            "secyf_bioh": "wood harvest biomass carbon from secondary young forest (none written)",
+            "secnf_harv": "wood harvest area from secondary non-forest land (whole stands at secmb)",
+            "pltns_harv": "wood harvest area from plantation forest (included in secmf; none written)",
+            "pltns_bioh": "wood harvest biomass carbon from plantation forest (included in secmf_bioh; none written)"}
+    CHUNK = 25
+
+    def __init__(self, transitions: Source, states: Source, carea_m2: np.ndarray):
+        self.t, self.s, self.carea = transitions, states, carea_m2
+        self.capped = {"secmf": 0.0, "secnf": 0.0}
+        self.total = {"secmf": 0.0, "secnf": 0.0}
+
+    def names(self, names: list[str]) -> list[str]:
+        return [n for v in names for n in self.RENAME.get(v, [v])]
+
+    def attrs(self, v: str, year: int) -> dict:
+        src = {"secmf_harv": "secdf_harv", "secyf_harv": "secdf_harv",
+               "secmf_bioh": "secdf_bioh", "secyf_bioh": "secdf_bioh"}.get(v, v)
+        a = self.t.attrs(src, year)
+        if v in self.LONG:
+            a.update(long_name=self.LONG[v], standard_name=v)
+        return a
+
+    def _area(self, pool: str, bioh: np.ndarray, years: list[int], cap_state: str) -> np.ndarray:
+        mb = self.s.block("secmb", years).astype("f8")
+        cap = np.nan_to_num(self.s.block(cap_state, years).astype("f8"))
+        bioh = np.nan_to_num(bioh.astype("f8"))
+        with np.errstate(divide="ignore", invalid="ignore"):
+            area = bioh / (np.nan_to_num(mb) * self.carea)
+        area = np.where(np.isfinite(area), area, np.inf)
+        out = np.minimum(area, cap)
+        hit = (area > cap) & (bioh > 0)
+        # carbon above what whole stands at secmb would carry
+        self.capped[pool] += float((bioh - np.nan_to_num(out * mb * self.carea)).clip(0)[hit].sum())
+        self.total[pool] += float(bioh.sum())
+        return np.where(np.isnan(self.t.block("secnf_harv", years)), np.nan, out).astype("f4")
+
+    def block(self, v: str, years: list[int]) -> np.ndarray:
+        if len(years) > self.CHUNK:
+            return np.concatenate([self.block(v, years[i:i + self.CHUNK]) for i in range(0, len(years), self.CHUNK)])
+        if v in ("secyf_harv", "secyf_bioh", "pltns_harv", "pltns_bioh"):
+            x = self.t.block("pltns_harv" if v.endswith("harv") else "pltns_bioh", years)
+            return np.where(np.isnan(x), np.nan, 0).astype("f4")
+        if v == "secmf_bioh":
+            sec = self.t.block("secdf_bioh", years)
+            return np.where(np.isnan(sec), np.nan, sec + np.nan_to_num(self.t.block("pltns_bioh", years))).astype("f4")
+        if v == "secmf_harv":
+            return self._area("secmf", self.block("secmf_bioh", years), years, "secdf")
+        if v == "secnf_harv":
+            return self._area("secnf", self.t.block("secnf_bioh", years), years, "secdn")
+        return self.t.block(v, years)
+
+
 def write(path: Path, src: Source, names: list[str], years: list[int], grid: xr.Dataset, attrs: dict):
     nc = netCDF4.Dataset(path, "w", format="NETCDF4")
     nc.createDimension("time", None)
@@ -143,7 +217,7 @@ def main() -> None:
     ap.add_argument("build", help="one marker's build folder, holding annual/ and extension/")
     ap.add_argument("marker", choices=list(MARKERS))
     ap.add_argument("out")
-    ap.add_argument("--version", default="0-1")
+    ap.add_argument("--version", default="0-2")
     ap.add_argument("--manifest", help="the build's manifest.txt, copied into the provenance")
     ap.add_argument("--prefix", default=PREFIX, help=f"dataset name before the marker (default {PREFIX})")
     ap.add_argument("--institutions", nargs="+", choices=list(INSTITUTIONS), default=["CICERO"])
@@ -154,6 +228,9 @@ def main() -> None:
     ext = {k: only(f"{b}/extension/multiple-{k}_*.nc") for k in ("states", "transitions", "management", "secondary")}
     history = only(f"{paths.LUH3}/multiple-states_input4MIPs_landState_CMIP_UofMD-landState-3-1-1_gn_*.nc")
     grid = xr.open_dataset(annual["states"], decode_times=False)
+    carea = xr.open_dataset(paths.STATIC).carea  # km2
+    assert np.allclose(carea.lat.values, grid.lat.values) and np.allclose(carea.lon.values, grid.lon.values)
+    carea_m2 = np.nan_to_num(carea.values.astype("f8")) * 1e6
 
     # secma/secmb: LUH3 history before the tracker starts, then tracked, then the static period
     tracked = xr.open_dataset(f"{b}/annual/secondary_2024-2150.nc", decode_times=False)
@@ -170,10 +247,10 @@ def main() -> None:
     early.to_netcdf(early_tmp)
 
     states = Source([str(early_tmp), str(tmp), annual["states"], ext["states"], ext["secondary"]])
-    transitions = Source([annual["transitions"], ext["transitions"]])
+    transitions = Harvest(Source([annual["transitions"], ext["transitions"]]), states, carea_m2)
     management = Source([annual["management"], ext["management"]])
     stateNames = list(xr.open_dataset(annual["states"], decode_times=False).data_vars) + ["secma", "secmb"]
-    transitionNames = list(xr.open_dataset(annual["transitions"], decode_times=False).data_vars)
+    transitionNames = transitions.names(list(xr.open_dataset(annual["transitions"], decode_times=False).data_vars))
     managementNames = list(xr.open_dataset(annual["management"], decode_times=False).data_vars)
 
     scenario, model = MARKERS[args.marker]
@@ -221,13 +298,21 @@ def main() -> None:
             write(folder / name, src, names, yrs, grid, attrs)
             built.append(folder / name)
             print("wrote", name, flush=True)
+            if kind == "transitions":
+                for pool in ("secmf", "secnf"):
+                    print(f"  {pool}: {transitions.capped[pool] / 1e12:.4f} of {transitions.total[pool] / 1e12:.2f} PgC "
+                          "harvested above secmb where the cap binds", flush=True)
+                    transitions.capped[pool] = transitions.total[pool] = 0.0
         with open(folder / "SHA256SUMS", "w") as f:
             for p in sorted(folder.glob("*.nc")):
                 f.write(f"{sha256(p)}  {p.name}\n")
         (folder / "README.txt").write_text(
             f"{source_id}\n\n{attrs['title']}.\n\n{NOT_LUH3}\n\n"
             f"Annual, 0.25 degree, {span[0]}-{span[-1]} (transitions {tspan[0]}-{tspan[-1]}). Variables as in LUH3; "
-            "plantations are folded into secondary forest; wood harvest moves primary land to secondary as in LUH3.\n\n"
+            "plantations are folded into secondary forest; wood harvest moves primary land to secondary as in LUH3. "
+            "Secondary wood harvest is written in LUH3's pools, as whole stands at the cell's secondary mean biomass "
+            "(secmb): secmf_harv is the secondary forest and plantation harvest carbon (secmf_bioh) over secmb, at most "
+            "secdf, and secnf_harv likewise, at most secdn; secyf and pltns harvest are zero.\n\n"
             f"Input: {attrs['input_data']}.\n{attrs['input_data_license']}.\n\n"
             f"Acknowledgement: {attrs['acknowledgement']}.\n\n"
             f"Licence: CC BY 4.0. Provenance (build manifest):\n\n{provenance}\n")
