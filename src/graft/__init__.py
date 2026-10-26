@@ -14,4 +14,4 @@
 from graft import luh_schema
 
 __all__ = ["luh_schema"]
-__version__ = "0.1"
+__version__ = "0.2"

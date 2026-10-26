@@ -10,20 +10,20 @@ graft is the Python half of the workflow: input preparation, post-processing
 packaging, and diagnostics against LUH3. Harmonization and downscaling are done
 by a fork of PIK's [mrdownscale](https://github.com/pik-piam/mrdownscale)
 ([benmsanderson/mrdownscale](https://github.com/benmsanderson/mrdownscale),
-branch `graft/primary-forest-harvest`), whose `release/` folder holds the
+branch `graft/absolute-changes`), whose `release/` folder holds the
 single entry point that builds everything.
 
 The product is independent of LUH3 and not part of the official CMIP7 forcing
 datasets. It uses the same method for every scenario and is evaluated against
 LUH3 where LUH3 scenarios exist.
 
-## The dataset (v0.1)
+## The dataset (v0.2)
 
 | | |
 |---|---|
 | markers | VL (REMIND-MAgPIE), L (MESSAGEix-GLOBIOM-GAINS), LN (AIM), M (IMAGE), ML (COFFEE), H (GCAM), HL (WITCH) |
-| period | 2020-2100 (`CICERO-PIK-mrdownscale-landState-<marker>-0-1`) and 2100-2500 (`...-<marker>-ext-0-1`) |
-| content | LUH-format states (with secondary mean age and biomass), gross transitions and wood harvest, management; annual, 0.25 degrees |
+| period | 2020-2100 (`CICERO-PIK-mrdownscale-landState-<marker>-0-2`) and 2100-2500 (`...-<marker>-ext-0-2`) |
+| content | LUH-format states (with secondary mean age and biomass), gross transitions, wood harvest in LUH3's source pools, management; annual, 0.25 degrees |
 | size | 14 datasets, 108 GB |
 | access | NIRD Research Data Archive, DOI to come |
 | licence | CC BY 4.0 |
@@ -49,6 +49,16 @@ forest and non-forest land. Almost all of the grid-cell difference is where
 land use is placed within regions rather than how much each region has. The
 method, evaluation and limitations are described in the accompanying paper
 (Sanderson et al., in preparation).
+
+**Versions.** v0.2 writes wood harvest in LUH3's source pools: secondary
+forest harvest, plantations included, as mature secondary forest (`secmf`),
+with `secyf` and `pltns` harvest zero, and secondary non-forest land as
+`secnf`. As in LUH3, each pool's harvest carbon is its harvested area times
+the cell's `secmb`; for each R10 region, year and pool, harvest area is scaled
+to carry the region's harvest carbon at `secmb`, capped at the cell's
+secondary land. Land states are unchanged from v0.1. The v0.2 datasets were
+built from graft `3cf4ebd`; the `v0.2` tag adds figure scripts and
+documentation only.
 
 **Inputs and attribution.** The scenarios are those of the ScenarioMIP
 modelling teams, from the IIASA *ScenarioMIP/CMIP7 Ensemble - Data at the R10
@@ -98,7 +108,7 @@ to mrdownscale, each with its reason, are listed in the fork's `README.md`.
 | mrdownscale | `run_markers.sh`, `run_scenariomip.R` |
 | post-processing | `annualise.py`, `check_closure.py`, `age_track.py`, `extend_product.py`, `extend_summary.py`, `extend_marker.sh` (all of these, for one marker) |
 | release | `package_release.py`, `compare_products.py` |
-| figures | `figure_data.py` (released data to small tables), `plot_extension.py`, `run_notebook.sh` |
+| figures | `figure_data.py` (released data to small tables), `figure_regional.py`, `figure_supp.py`, `plot_extension.py`, `run_notebook.sh` |
 | diagnostics | `score_luh.py`, `extend_compare.py`, `carbon_check.py`, `carbon_summary.py`, `luh_as_iamc.py`, `luh_provenance.py`, `output_gap.py`, `fetch_luh3_harvest.py`, `export_mrdownscale_states.R`, `run_testthat.sh` |
 
 **`data/`**: R10 region membership per model, and the country of each grid cell

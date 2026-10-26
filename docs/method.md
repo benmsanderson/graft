@@ -39,6 +39,12 @@ listed in the fork's `README.md`.
 5. Harvest is booked under LUH3's rule: primary land becomes secondary through
    `primf_harv`/`primn_harv`, not a transition, and each cell's primary
    harvest is its primary decline.
+6. Wood harvest is written in LUH3's source pools (`package_release.py`):
+   secondary forest harvest, plantations included, as `secmf` (`secyf` zero,
+   since secondary land carries one mean age per cell) and `secnf`. Each
+   pool's harvest carbon is its area times the cell's `secmb`, and per R10
+   region, year and pool the area is scaled to carry the region's harvest
+   carbon at `secmb`, capped at the cell's secondary land.
 
 ## Post-processing (graft)
 

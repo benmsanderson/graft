@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "graft"
-version = "0.1"
+version = "0.2"
 description = "Gridded land-use forcing for the CMIP7 ScenarioMIP markers from public IAM data: preparation, post-processing, extensions and diagnostics"
 license = {text = "BSD-3-Clause"}
 readme = "README.md"
