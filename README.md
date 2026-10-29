@@ -25,7 +25,7 @@ LUH3 where LUH3 scenarios exist.
 | period | 2020-2100 (`CICERO-PIK-mrdownscale-landState-<marker>-0-2`) and 2100-2500 (`...-<marker>-ext-0-2`) |
 | content | LUH-format states (with secondary mean age and biomass), gross transitions, wood harvest in LUH3's source pools, management; annual, 0.25 degrees |
 | size | 14 datasets, 108 GB |
-| access | NIRD Research Data Archive, DOI to come |
+| access | NIRD Research Data Archive, <https://doi.org/10.11582/2026.4d6vh48v> |
 | licence | CC BY 4.0 |
 
 Each product is harmonized to LUH3 history at 2025, closes its land budget
@@ -134,11 +134,14 @@ The R side (mrdownscale and its dependencies) is set up from the fork's
 
 ## Citing, licence, contact
 
-Cite the dataset (DOI to come) and the paper (in preparation). The code is
+Cite the dataset (Sanderson, Sauer, Dietrich and Sandstad, 2026,
+CICERO-PIK-mrdownscale-landState v0.2, NIRD Research Data Archive,
+<https://doi.org/10.11582/2026.4d6vh48v>) and the paper (in preparation). The code is
 under the BSD 3-Clause licence (`LICENSE`); the fork of mrdownscale stays under
 mrdownscale's LGPL-3. Contact: Benjamin Sanderson, CICERO
 (benjamin.sanderson@cicero.oslo.no).
 
-Supported by the NextGenCarbon project (European Union Horizon Europe, grant
-101184989). Harmonization and downscaling build on mrdownscale (Sauer and
+Supported by NCS-REVISE (Research Council of Norway, 354143) and by the
+NextGenCarbon (101184989) and FUTURA (101295156) projects (European Union
+Horizon Europe). Harmonization and downscaling build on mrdownscale (Sauer and
 Dietrich, PIK, <https://doi.org/10.5281/zenodo.11244475>).

@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you use graft or the graft-landState data, please cite them as below."
+message: "If you use graft, please cite it as below; cite the CICERO-PIK-mrdownscale-landState data by their DOI (see references)."
 title: "graft: gridded land-use forcing for the CMIP7 ScenarioMIP markers from public IAM data"
 version: "0.2"
 date-released: "2026-10-26"
@@ -9,7 +9,23 @@ authors:
   - family-names: Sanderson
     given-names: Benjamin M.
     affiliation: "CICERO Center for International Climate Research"
+    orcid: "https://orcid.org/0000-0001-8635-4624"
 references:
+  - type: dataset
+    title: "CICERO-PIK-mrdownscale-landState v0.2: gridded land-use states, transitions and management for the seven CMIP7 ScenarioMIP marker scenarios from public regional IAM data, 2020-2500"
+    authors:
+      - family-names: Sanderson
+        given-names: Benjamin M.
+      - family-names: Sauer
+        given-names: Pascal
+      - family-names: Dietrich
+        given-names: Jan Philipp
+      - family-names: Sandstad
+        given-names: Marit
+    publisher:
+      name: "NIRD Research Data Archive"
+    year: 2026
+    doi: "10.11582/2026.4d6vh48v"
   - type: software
     title: "mrdownscale: Downscale and harmonize land use data"
     authors:
